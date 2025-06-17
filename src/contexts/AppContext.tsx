@@ -37,7 +37,12 @@ interface AppContextType {
   products: Product[];
   transactions: Transaction[];
   journalEntries: JournalEntry[];
+  addProduct: (product: Omit<Product, 'id'>) => void;
+  updateProduct: (id: string, product: Partial<Product>) => void;
+  deleteProduct: (id: string) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  updateTransaction: (id: string, transaction: Partial<Transaction>) => void;
+  deleteTransaction: (id: string) => void;
   addJournalEntry: (entry: Omit<JournalEntry, 'id'>) => void;
   updateProductStock: (productId: string, quantity: number) => void;
   getFinancialSummary: () => {
@@ -59,47 +64,28 @@ export const useApp = () => {
 };
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>([
-    { id: 'P001', name: 'Nasi Goreng', price: 15000, category: 'Makanan', stock: 50 },
-    { id: 'P002', name: 'Mie Ayam', price: 12000, category: 'Makanan', stock: 30 },
-    { id: 'P003', name: 'Es Teh', price: 5000, category: 'Minuman', stock: 100 },
-    { id: 'P004', name: 'Kopi', price: 8000, category: 'Minuman', stock: 80 },
-    { id: 'P005', name: 'Ayam Goreng', price: 18000, category: 'Makanan', stock: 25 },
-    { id: 'P006', name: 'Jus Jeruk', price: 10000, category: 'Minuman', stock: 60 },
-    { id: 'P007', name: 'Soto Ayam', price: 14000, category: 'Makanan', stock: 35 },
-    { id: 'P008', name: 'Es Campur', price: 12000, category: 'Minuman', stock: 40 },
-  ]);
+  // Start with empty data - user builds from scratch
+  const [products, setProducts] = useState<Product[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
 
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: 'TRX001',
-      date: new Date().toISOString().split('T')[0],
-      customer: 'Ahmad Wijaya',
-      type: 'Penjualan',
-      amount: 125000,
-      description: 'Penjualan nasi goreng dan es teh',
-      status: 'Lunas'
-    },
-    {
-      id: 'TRX002',
-      date: new Date().toISOString().split('T')[0],
-      customer: 'Siti Nurhaliza',
-      type: 'Penjualan',
-      amount: 89500,
-      description: 'Penjualan mie ayam dan jus jeruk',
-      status: 'Lunas'
-    }
-  ]);
+  const addProduct = (product: Omit<Product, 'id'>) => {
+    const newProduct = {
+      ...product,
+      id: 'P' + Date.now().toString()
+    };
+    setProducts(prev => [...prev, newProduct]);
+  };
 
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([
-    {
-      id: 'JE001',
-      date: new Date().toISOString().split('T')[0],
-      description: 'Penjualan tunai',
-      debit: [{ account: 'Kas', amount: 125000 }],
-      credit: [{ account: 'Pendapatan Penjualan', amount: 125000 }]
-    }
-  ]);
+  const updateProduct = (id: string, productUpdate: Partial<Product>) => {
+    setProducts(prev => prev.map(product => 
+      product.id === id ? { ...product, ...productUpdate } : product
+    ));
+  };
+
+  const deleteProduct = (id: string) => {
+    setProducts(prev => prev.filter(product => product.id !== id));
+  };
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction = {
@@ -116,7 +102,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         debit: [{ account: 'Kas', amount: transaction.amount }],
         credit: [{ account: 'Pendapatan Penjualan', amount: transaction.amount }]
       });
+    } else if (transaction.type === 'Pembelian') {
+      addJournalEntry({
+        date: transaction.date,
+        description: `Pembelian - ${transaction.customer}`,
+        debit: [{ account: 'Persediaan', amount: transaction.amount }],
+        credit: [{ account: 'Kas', amount: transaction.amount }]
+      });
     }
+  };
+
+  const updateTransaction = (id: string, transactionUpdate: Partial<Transaction>) => {
+    setTransactions(prev => prev.map(transaction => 
+      transaction.id === id ? { ...transaction, ...transactionUpdate } : transaction
+    ));
+  };
+
+  const deleteTransaction = (id: string) => {
+    setTransactions(prev => prev.filter(transaction => transaction.id !== id));
   };
 
   const addJournalEntry = (entry: Omit<JournalEntry, 'id'>) => {
@@ -157,7 +160,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       products,
       transactions,
       journalEntries,
+      addProduct,
+      updateProduct,
+      deleteProduct,
       addTransaction,
+      updateTransaction,
+      deleteTransaction,
       addJournalEntry,
       updateProductStock,
       getFinancialSummary
