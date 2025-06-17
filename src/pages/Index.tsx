@@ -37,15 +37,6 @@ const Index = () => {
             </div>
           </div>
         );
-      case 'pengaturan':
-        return (
-          <div className="p-6 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Pengaturan</h1>
-            <div className="bg-white rounded-lg p-8 text-center">
-              <p className="text-gray-600">Fitur pengaturan akan segera tersedia</p>
-            </div>
-          </div>
-        );
       default:
         return <Dashboard />;
     }

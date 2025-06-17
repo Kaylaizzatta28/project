@@ -7,7 +7,6 @@ import {
   FileText, 
   TrendingUp, 
   Calculator,
-  Settings,
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -24,7 +23,6 @@ const menuItems = [
   { id: 'produk', label: 'Produk', icon: Package },
   { id: 'laporan', label: 'Laporan', icon: FileText },
   { id: 'jurnal', label: 'Jurnal', icon: TrendingUp },
-  { id: 'pengaturan', label: 'Pengaturan', icon: Settings },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => {
