@@ -2,12 +2,25 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Receipt, Package, DollarSign, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useApp } from '@/contexts/AppContext';
 
 const Dashboard: React.FC = () => {
+  const { transactions, products, getFinancialSummary } = useApp();
+  const summary = getFinancialSummary();
+
+  // Get today's transactions
+  const today = new Date().toISOString().split('T')[0];
+  const todayTransactions = transactions.filter(t => t.date === today);
+  const todayRevenue = todayTransactions
+    .filter(t => t.type === 'Penjualan')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const lowStockProducts = products.filter(p => p.stock < 10).length;
+
   const stats = [
     {
       title: 'Total Penjualan Hari Ini',
-      value: 'Rp 2.450.000',
+      value: `Rp ${todayRevenue.toLocaleString('id-ID')}`,
       change: '+12.5%',
       icon: DollarSign,
       color: 'text-green-600',
@@ -15,36 +28,31 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Total Transaksi',
-      value: '156',
+      value: summary.totalTransactions.toString(),
       change: '+8.2%',
       icon: Receipt,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
-      title: 'Produk Terjual',
-      value: '324',
-      change: '+15.3%',
+      title: 'Produk Stok Rendah',
+      value: lowStockProducts.toString(),
+      change: lowStockProducts > 0 ? 'Perlu Restok' : 'Aman',
       icon: Package,
+      color: lowStockProducts > 0 ? 'text-red-600' : 'text-green-600',
+      bgColor: lowStockProducts > 0 ? 'bg-red-100' : 'bg-green-100',
+    },
+    {
+      title: 'Laba Bersih',
+      value: `Rp ${summary.netIncome.toLocaleString('id-ID')}`,
+      change: '+15.3%',
+      icon: TrendingUp,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
-    {
-      title: 'Pelanggan Baru',
-      value: '28',
-      change: '+4.1%',
-      icon: Users,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
-    },
   ];
 
-  const recentTransactions = [
-    { id: 'TRX001', customer: 'Ahmad Wijaya', amount: 'Rp 125.000', time: '10:30', type: 'Penjualan' },
-    { id: 'TRX002', customer: 'Siti Nurhaliza', amount: 'Rp 89.500', time: '11:15', type: 'Penjualan' },
-    { id: 'TRX003', customer: 'Budi Santoso', amount: 'Rp 350.000', time: '12:45', type: 'Penjualan' },
-    { id: 'TRX004', customer: 'Supplier ABC', amount: 'Rp 500.000', time: '13:20', type: 'Pembelian' },
-  ];
+  const recentTransactions = transactions.slice(0, 4);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -64,7 +72,7 @@ const Dashboard: React.FC = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                     <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                    <p className="text-sm text-green-600 mt-1">{stat.change}</p>
+                    <p className={`text-sm mt-1 ${stat.color}`}>{stat.change}</p>
                   </div>
                   <div className={`p-3 rounded-full ${stat.bgColor}`}>
                     <Icon className={`h-6 w-6 ${stat.color}`} />
@@ -91,10 +99,10 @@ const Dashboard: React.FC = () => {
                 <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900">{transaction.customer}</p>
-                    <p className="text-sm text-gray-600">{transaction.id} • {transaction.time}</p>
+                    <p className="text-sm text-gray-600">{transaction.id} • {new Date(transaction.date).toLocaleDateString('id-ID')}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-gray-900">{transaction.amount}</p>
+                    <p className="font-medium text-gray-900">Rp {transaction.amount.toLocaleString('id-ID')}</p>
                     <p className={`text-sm ${transaction.type === 'Penjualan' ? 'text-green-600' : 'text-red-600'}`}>
                       {transaction.type}
                     </p>
@@ -117,8 +125,8 @@ const Dashboard: React.FC = () => {
             <div className="h-64 bg-gradient-to-r from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
               <div className="text-center">
                 <TrendingUp className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                <p className="text-gray-600">Grafik penjualan 7 hari terakhir</p>
-                <p className="text-sm text-gray-500 mt-2">Trend naik 15.3% dari minggu lalu</p>
+                <p className="text-gray-600">Total Penjualan: Rp {summary.totalRevenue.toLocaleString('id-ID')}</p>
+                <p className="text-sm text-gray-500 mt-2">Laba Bersih: Rp {summary.netIncome.toLocaleString('id-ID')}</p>
               </div>
             </div>
           </CardContent>

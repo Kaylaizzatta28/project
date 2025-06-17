@@ -4,6 +4,7 @@ import { Plus, Minus, Trash2, ShoppingCart, Calculator, Search } from 'lucide-re
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useApp } from '@/contexts/AppContext';
 
 interface CartItem {
   id: string;
@@ -13,20 +14,9 @@ interface CartItem {
 }
 
 const Kasir: React.FC = () => {
+  const { products, addTransaction, updateProductStock } = useApp();
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [customerName, setCustomerName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const products = [
-    { id: 'P001', name: 'Nasi Goreng', price: 15000, category: 'Makanan' },
-    { id: 'P002', name: 'Mie Ayam', price: 12000, category: 'Makanan' },
-    { id: 'P003', name: 'Es Teh', price: 5000, category: 'Minuman' },
-    { id: 'P004', name: 'Kopi', price: 8000, category: 'Minuman' },
-    { id: 'P005', name: 'Ayam Goreng', price: 18000, category: 'Makanan' },
-    { id: 'P006', name: 'Jus Jeruk', price: 10000, category: 'Minuman' },
-    { id: 'P007', name: 'Soto Ayam', price: 14000, category: 'Makanan' },
-    { id: 'P008', name: 'Es Campur', price: 12000, category: 'Minuman' },
-  ];
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -34,8 +24,17 @@ const Kasir: React.FC = () => {
   );
 
   const addToCart = (product: typeof products[0]) => {
+    if (product.stock <= 0) {
+      alert('Stok produk habis!');
+      return;
+    }
+
     const existingItem = cart.find(item => item.id === product.id);
     if (existingItem) {
+      if (existingItem.quantity >= product.stock) {
+        alert('Stok tidak mencukupi!');
+        return;
+      }
       setCart(cart.map(item => 
         item.id === product.id 
           ? { ...item, quantity: item.quantity + 1 }
@@ -47,6 +46,12 @@ const Kasir: React.FC = () => {
   };
 
   const updateQuantity = (id: string, newQuantity: number) => {
+    const product = products.find(p => p.id === id);
+    if (product && newQuantity > product.stock) {
+      alert('Stok tidak mencukupi!');
+      return;
+    }
+
     if (newQuantity <= 0) {
       setCart(cart.filter(item => item.id !== id));
     } else {
@@ -68,12 +73,34 @@ const Kasir: React.FC = () => {
       return;
     }
     
+    // Create transaction
+    const transaction = {
+      date: new Date().toISOString().split('T')[0],
+      customer: 'Pelanggan Umum',
+      type: 'Penjualan' as const,
+      amount: total,
+      description: cart.map(item => `${item.name} (${item.quantity})`).join(', '),
+      status: 'Lunas' as const,
+      items: cart.map(item => ({
+        productId: item.id,
+        productName: item.name,
+        quantity: item.quantity,
+        price: item.price
+      }))
+    };
+
+    addTransaction(transaction);
+
+    // Update stock
+    cart.forEach(item => {
+      updateProductStock(item.id, item.quantity);
+    });
+
     const transactionId = 'TRX' + Date.now().toString().slice(-6);
     alert(`Transaksi berhasil!\nNo. Transaksi: ${transactionId}\nTotal: Rp ${total.toLocaleString('id-ID')}`);
     
     // Reset form
     setCart([]);
-    setCustomerName('');
   };
 
   return (
@@ -104,7 +131,9 @@ const Kasir: React.FC = () => {
           {filteredProducts.map((product) => (
             <Card 
               key={product.id} 
-              className="cursor-pointer hover:shadow-lg transition-shadow duration-200 h-fit"
+              className={`cursor-pointer hover:shadow-lg transition-shadow duration-200 h-fit ${
+                product.stock <= 0 ? 'opacity-50' : ''
+              }`}
               onClick={() => addToCart(product)}
             >
               <CardContent className="p-4">
@@ -113,13 +142,18 @@ const Kasir: React.FC = () => {
                     <span className="text-2xl">🍽️</span>
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2">{product.name}</h3>
-                  <p className="text-sm text-gray-600 mb-3">{product.category}</p>
+                  <p className="text-sm text-gray-600 mb-1">{product.category}</p>
+                  <p className="text-xs text-gray-500 mb-3">Stok: {product.stock}</p>
                   <div className="text-lg font-bold text-green-600 mb-3">
                     Rp {product.price.toLocaleString('id-ID')}
                   </div>
-                  <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+                  <Button 
+                    size="sm" 
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    disabled={product.stock <= 0}
+                  >
                     <Plus className="h-4 w-4 mr-1" />
-                    Tambah
+                    {product.stock <= 0 ? 'Habis' : 'Tambah'}
                   </Button>
                 </div>
               </CardContent>
@@ -138,19 +172,6 @@ const Kasir: React.FC = () => {
         </div>
 
         <div className="p-6 flex-1 flex flex-col">
-          {/* Customer Name */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nama Pelanggan
-            </label>
-            <Input
-              type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Masukkan nama pelanggan"
-            />
-          </div>
-
           {/* Cart Items */}
           <div className="flex-1 overflow-y-auto mb-6">
             {cart.length === 0 ? (

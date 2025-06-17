@@ -5,60 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-interface Transaction {
-  id: string;
-  date: string;
-  customer: string;
-  type: 'Penjualan' | 'Pembelian';
-  amount: number;
-  description: string;
-  status: 'Lunas' | 'Belum Lunas';
-}
+import { useApp } from '@/contexts/AppContext';
 
 const Transaksi: React.FC = () => {
+  const { transactions } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [showAddForm, setShowAddForm] = useState(false);
-
-  const [transactions] = useState<Transaction[]>([
-    {
-      id: 'TRX001',
-      date: '2024-01-15',
-      customer: 'Ahmad Wijaya',
-      type: 'Penjualan',
-      amount: 125000,
-      description: 'Penjualan nasi goreng dan es teh',
-      status: 'Lunas'
-    },
-    {
-      id: 'TRX002',
-      date: '2024-01-15',
-      customer: 'Siti Nurhaliza',
-      type: 'Penjualan',
-      amount: 89500,
-      description: 'Penjualan mie ayam dan jus jeruk',
-      status: 'Lunas'
-    },
-    {
-      id: 'TRX003',
-      date: '2024-01-14',
-      customer: 'Supplier ABC',
-      type: 'Pembelian',
-      amount: 500000,
-      description: 'Pembelian bahan baku',
-      status: 'Belum Lunas'
-    },
-    {
-      id: 'TRX004',
-      date: '2024-01-14',
-      customer: 'Budi Santoso',
-      type: 'Penjualan',
-      amount: 350000,
-      description: 'Penjualan paket catering',
-      status: 'Lunas'
-    },
-  ]);
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -86,13 +38,6 @@ const Transaksi: React.FC = () => {
             </h1>
             <p className="text-gray-600 mt-2">Kelola semua transaksi penjualan dan pembelian</p>
           </div>
-          <Button 
-            onClick={() => setShowAddForm(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Transaksi
-          </Button>
         </div>
       </div>
 
@@ -128,6 +73,38 @@ const Transaksi: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-600">Total Transaksi</p>
+              <p className="text-2xl font-bold text-blue-600">{transactions.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-600">Total Penjualan</p>
+              <p className="text-2xl font-bold text-green-600">
+                Rp {transactions.filter(t => t.type === 'Penjualan').reduce((sum, t) => sum + t.amount, 0).toLocaleString('id-ID')}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-600">Total Pembelian</p>
+              <p className="text-2xl font-bold text-red-600">
+                Rp {transactions.filter(t => t.type === 'Pembelian').reduce((sum, t) => sum + t.amount, 0).toLocaleString('id-ID')}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Transactions Table */}
       <Card>
@@ -180,11 +157,8 @@ const Transaksi: React.FC = () => {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" title="Lihat Detail">
                           <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
-                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>

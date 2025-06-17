@@ -4,38 +4,41 @@ import { FileText, TrendingUp, TrendingDown, DollarSign, Calendar, Download } fr
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useApp } from '@/contexts/AppContext';
 
 const Laporan: React.FC = () => {
+  const { getFinancialSummary } = useApp();
   const [selectedPeriod, setSelectedPeriod] = useState('bulan-ini');
+  const summary = getFinancialSummary();
 
   const laporanData = {
     labaRugi: {
-      pendapatan: 15750000,
-      bebanOperasional: 8500000,
-      bebanLain: 1250000,
-      labaKotor: 15750000 - 8500000,
-      labaBersih: 15750000 - 8500000 - 1250000
+      pendapatan: summary.totalRevenue,
+      bebanOperasional: Math.floor(summary.totalRevenue * 0.4),
+      bebanLain: Math.floor(summary.totalRevenue * 0.1),
+      labaKotor: summary.totalRevenue - Math.floor(summary.totalRevenue * 0.4),
+      labaBersih: summary.netIncome
     },
     neraca: {
-      asetLancar: 25000000,
-      asetTetap: 75000000,
-      totalAset: 100000000,
-      kewajibanJangkaPendek: 15000000,
-      kewajibanJangkaPanjang: 35000000,
-      totalKewajiban: 50000000,
-      modal: 50000000
+      asetLancar: summary.totalRevenue * 0.6,
+      asetTetap: summary.totalRevenue * 1.5,
+      totalAset: summary.totalRevenue * 2.1,
+      kewajibanJangkaPendek: summary.totalRevenue * 0.3,
+      kewajibanJangkaPanjang: summary.totalRevenue * 0.7,
+      totalKewajiban: summary.totalRevenue * 1.0,
+      modal: summary.totalRevenue * 1.1
     },
     arusKas: {
-      arusKasOperasi: 12500000,
-      arusKasInvestasi: -5000000,
-      arusKasPendanaan: 2500000,
-      kasAwal: 8000000,
-      kasAkhir: 18000000
+      arusKasOperasi: summary.totalRevenue * 0.8,
+      arusKasInvestasi: -summary.totalRevenue * 0.2,
+      arusKasPendanaan: summary.totalRevenue * 0.1,
+      kasAwal: summary.totalRevenue * 0.3,
+      kasAkhir: summary.totalRevenue * 0.4
     }
   };
 
   const formatCurrency = (amount: number) => {
-    return `Rp ${amount.toLocaleString('id-ID')}`;
+    return `Rp ${Math.floor(amount).toLocaleString('id-ID')}`;
   };
 
   return (
@@ -223,12 +226,12 @@ const Laporan: React.FC = () => {
                 <h3 className="font-semibold text-lg mb-3">Arus Kas Operasi</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Penerimaan dari Pelanggang</span>
-                    <span className="font-medium text-green-600">+{formatCurrency(15000000)}</span>
+                    <span>Penerimaan dari Pelanggan</span>
+                    <span className="font-medium text-green-600">+{formatCurrency(laporanData.arusKas.arusKasOperasi)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Pembayaran ke Supplier</span>
-                    <span className="font-medium text-red-600">-{formatCurrency(2500000)}</span>
+                    <span>Pembayaran Operasional</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(laporanData.labaRugi.bebanOperasional * 0.3)}</span>
                   </div>
                   <div className="flex justify-between font-semibold border-t pt-2">
                     <span>Net Arus Kas Operasi</span>
@@ -242,7 +245,7 @@ const Laporan: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Pembelian Peralatan</span>
-                    <span className="font-medium text-red-600">-{formatCurrency(5000000)}</span>
+                    <span className="font-medium text-red-600">{formatCurrency(laporanData.arusKas.arusKasInvestasi)}</span>
                   </div>
                   <div className="flex justify-between font-semibold border-t pt-2">
                     <span>Net Arus Kas Investasi</span>
@@ -255,8 +258,8 @@ const Laporan: React.FC = () => {
                 <h3 className="font-semibold text-lg mb-3">Arus Kas Pendanaan</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Pinjaman Bank</span>
-                    <span className="font-medium text-green-600">+{formatCurrency(2500000)}</span>
+                    <span>Modal/Pinjaman</span>
+                    <span className="font-medium text-green-600">+{formatCurrency(laporanData.arusKas.arusKasPendanaan)}</span>
                   </div>
                   <div className="flex justify-between font-semibold border-t pt-2">
                     <span>Net Arus Kas Pendanaan</span>
@@ -273,7 +276,7 @@ const Laporan: React.FC = () => {
               </div>
               <div className="flex justify-between items-center mt-2">
                 <span className="font-semibold">Kenaikan (Penurunan) Kas</span>
-                <span className="font-medium text-green-600">+{formatCurrency(10000000)}</span>
+                <span className="font-medium text-green-600">+{formatCurrency(laporanData.arusKas.kasAkhir - laporanData.arusKas.kasAwal)}</span>
               </div>
               <div className="flex justify-between items-center mt-2 text-lg font-bold border-t pt-2">
                 <span>Kas Akhir Periode</span>
