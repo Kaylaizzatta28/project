@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export interface Product {
@@ -24,7 +25,7 @@ export interface Transaction {
     productName: string;
     quantity: number;
     price: number;
-    cost?: number; // For purchase transactions
+    cost?: number;
   }[];
   paymentMethod?: 'Tunai' | 'Transfer' | 'Kredit';
   cashReceived?: number;
@@ -86,7 +87,7 @@ interface AppContextType {
   deleteExpense: (id: string) => void;
   getFinancialSummary: () => {
     totalRevenue: number;
-    totalSales: number; // Alias for compatibility
+    totalSales: number;
     totalExpenses: number;
     totalPurchases: number;
     totalCOGS: number;
@@ -109,115 +110,11 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Sample data with more realistic accounting structure
-const initialProducts: Product[] = [
-  // Sample data for products
-  {
-    id: '4',
-    name: 'Kopi Susu',
-    category: 'Minuman',
-    price: 12000,
-    cost: 5000,
-    stock: 80,
-    minStock: 15,
-    supplier: 'Supplier Kopi Mantap'
-  },
-  {
-    id: '5',
-    name: 'Rendang Daging Sapi',
-    category: 'Makanan',
-    price: 45000,
-    cost: 30000,
-    stock: 25,
-    minStock: 5,
-    supplier: 'Supplier Rendang Padang'
-  },
-  {
-    id: '6',
-    name: 'Jus Alpukat',
-    category: 'Minuman',
-    price: 15000,
-    cost: 7000,
-    stock: 60,
-    minStock: 12,
-    supplier: 'Supplier Alpukat Segar'
-  },
-  {
-    id: '1',
-    name: 'Nasi Gudeg',
-    category: 'Makanan',
-    price: 25000,
-    cost: 15000,
-    stock: 50,
-    minStock: 10,
-    supplier: 'Supplier Gudeg Jogja'
-  },
-  {
-    id: '2',
-    name: 'Es Teh Manis',
-    category: 'Minuman',
-    price: 8000,
-    cost: 3000,
-    stock: 100,
-    minStock: 20,
-    supplier: 'Supplier Minuman'
-  },
-  {
-    id: '3',
-    name: 'Ayam Goreng',
-    category: 'Makanan',
-    price: 30000,
-    cost: 20000,
-    stock: 30,
-    minStock: 5,
-    supplier: 'Supplier Ayam'
-  }
-];
-
-const initialTransactions: Transaction[] = [
-  {
-    id: 'TRX001',
-    date: '2024-01-15',
-    customer: 'Ahmad Wijaya',
-    type: 'Penjualan',
-    amount: 58000,
-    description: 'Nasi Gudeg (2), Es Teh Manis (1)',
-    status: 'Lunas',
-    items: [
-      { productId: '1', productName: 'Nasi Gudeg', quantity: 2, price: 25000 },
-      { productId: '2', productName: 'Es Teh Manis', quantity: 1, price: 8000 }
-    ],
-    paymentMethod: 'Tunai',
-    cashReceived: 60000,
-    change: 2000
-  }
-];
-
-const initialPurchases: Purchase[] = [
-  {
-    id: 'PUR001',
-    date: '2024-01-10',
-    supplier: 'Supplier Gudeg Jogja',
-    amount: 750000,
-    description: 'Pembelian bahan baku gudeg',
-    status: 'Lunas',
-    items: [
-      { productId: '1', productName: 'Bahan Gudeg', quantity: 50, cost: 15000 }
-    ],
-    paymentMethod: 'Transfer'
-  }
-];
-
-const initialExpenses: Expense[] = [
-  {
-    id: 'EXP001',
-    date: '2024-01-15',
-    description: 'Bayar listrik bulanan',
-    amount: 500000,
-    category: 'Operasional',
-    status: 'Lunas'
-  }
-];
+// Mulai dengan data kosong untuk fresh start
+const initialProducts: Product[] = [];
+const initialTransactions: Transaction[] = [];
+const initialPurchases: Purchase[] = [];
+const initialExpenses: Expense[] = [];
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -259,10 +156,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...transaction, 
       id: 'TRX' + Date.now().toString().slice(-6) 
     };
-    setTransactions([...transactions, newTransaction]);
+    setTransactions([newTransaction, ...transactions]);
     
-    // Auto-generate journal entry for sales
+    // Update stock untuk penjualan
     if (transaction.type === 'Penjualan') {
+      transaction.items.forEach(item => {
+        updateProductStock(item.productId, item.quantity, 'sale');
+      });
+      
+      // Auto-generate journal entry untuk penjualan
       const journalEntry: Omit<JournalEntry, 'id'> = {
         date: transaction.date,
         description: `Penjualan - ${transaction.description}`,
@@ -288,9 +190,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...purchase, 
       id: 'PUR' + Date.now().toString().slice(-6) 
     };
-    setPurchases([...purchases, newPurchase]);
+    setPurchases([newPurchase, ...purchases]);
     
-    // Auto-generate journal entry for purchases
+    // Update stock untuk pembelian
+    purchase.items.forEach(item => {
+      updateProductStock(item.productId, item.quantity, 'purchase');
+    });
+    
+    // Auto-generate journal entry untuk pembelian
     const journalEntry: Omit<JournalEntry, 'id'> = {
       date: purchase.date,
       description: `Pembelian - ${purchase.description}`,
@@ -315,7 +222,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...entry, 
       id: 'JRN' + Date.now().toString().slice(-6) 
     };
-    setJournalEntries([...journalEntries, newEntry]);
+    setJournalEntries([newEntry, ...journalEntries]);
   };
 
   const deleteJournalEntry = (id: string) => {
@@ -327,9 +234,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...expense, 
       id: 'EXP' + Date.now().toString().slice(-6) 
     };
-    setExpenses([...expenses, newExpense]);
+    setExpenses([newExpense, ...expenses]);
     
-    // Auto-generate journal entry for expenses
+    // Auto-generate journal entry untuk beban
     const journalEntry: Omit<JournalEntry, 'id'> = {
       date: expense.date,
       description: `Beban ${expense.category} - ${expense.description}`,
@@ -350,10 +257,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const getFinancialSummary = () => {
+    // PEMASUKAN (Revenue)
     const totalRevenue = transactions
       .filter(t => t.type === 'Penjualan' && t.status === 'Lunas')
       .reduce((sum, t) => sum + t.amount, 0);
     
+    // PENGELUARAN
     const totalPurchases = purchases
       .filter(p => p.status === 'Lunas')
       .reduce((sum, p) => sum + p.amount, 0);
@@ -362,7 +271,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .filter(e => e.status === 'Lunas')
       .reduce((sum, e) => sum + e.amount, 0);
     
-    // Calculate COGS (Cost of Goods Sold) from sales transactions
+    // Calculate COGS (Harga Pokok Penjualan)
     const totalCOGS = transactions
       .filter(t => t.type === 'Penjualan' && t.status === 'Lunas')
       .reduce((sum, t) => {
@@ -375,13 +284,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const grossProfit = totalRevenue - totalCOGS;
     const netIncome = grossProfit - totalExpenses;
     
-    // Calculate assets, liabilities, and equity
-    const currentAssets = totalRevenue * 0.6; // Cash and receivables
-    const inventory = products.reduce((sum, p) => sum + (p.stock * p.cost), 0);
-    const fixedAssets = totalRevenue * 0.8; // Equipment and property
-    const totalAssets = currentAssets + inventory + fixedAssets;
-    
-    const totalLiabilities = totalPurchases * 0.3; // Accounts payable and loans
+    // Assets, Liabilities, and Equity calculation
+    const inventoryValue = products.reduce((sum, p) => sum + (p.stock * p.cost), 0);
+    const cash = totalRevenue - totalExpenses - totalPurchases;
+    const totalAssets = cash + inventoryValue + (totalRevenue * 0.5); // Equipment and other assets
+    const totalLiabilities = totalPurchases * 0.2; // Accounts payable
     const equity = totalAssets - totalLiabilities;
 
     return {
@@ -400,12 +307,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const getAccountsData = () => {
     const summary = getFinancialSummary();
+    const inventoryValue = products.reduce((sum, p) => sum + (p.stock * p.cost), 0);
     
     return {
       kas: summary.totalRevenue - summary.totalExpenses - summary.totalPurchases,
       piutang: summary.totalRevenue * 0.1, // 10% of revenue as receivables
-      persediaan: products.reduce((sum, p) => sum + (p.stock * p.cost), 0),
-      peralatan: summary.totalRevenue * 0.8,
+      persediaan: inventoryValue,
+      peralatan: summary.totalRevenue * 0.5,
       hutangUsaha: summary.totalPurchases * 0.2,
       hutangBank: summary.totalPurchases * 0.1,
       modal: summary.equity

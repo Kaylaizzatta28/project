@@ -1,22 +1,28 @@
 
 import React from 'react';
-import { TrendingUp, TrendingDown, Receipt, Package, DollarSign, Users, Plus, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Receipt, Package, DollarSign, Users, Plus, AlertTriangle, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/contexts/AppContext';
 
 const Dashboard: React.FC = () => {
-  const { transactions, products, getFinancialSummary } = useApp();
+  const { transactions, products, purchases, expenses, getFinancialSummary } = useApp();
   const summary = getFinancialSummary();
 
-  // Get today's transactions
+  // Get today's data
   const today = new Date().toISOString().split('T')[0];
   const todayTransactions = transactions.filter(t => t.date === today);
   const todayRevenue = todayTransactions
     .filter(t => t.type === 'Penjualan')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const lowStockProducts = products.filter(p => p.stock < 10);
+  const todayPurchases = purchases.filter(p => p.date === today);
+  const todayPurchaseAmount = todayPurchases.reduce((sum, p) => sum + p.amount, 0);
+
+  const todayExpenses = expenses.filter(e => e.date === today);
+  const todayExpenseAmount = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+  const lowStockProducts = products.filter(p => p.stock < p.minStock);
   const outOfStockProducts = products.filter(p => p.stock === 0);
 
   // Get this month's data
@@ -28,20 +34,20 @@ const Dashboard: React.FC = () => {
 
   const stats = [
     {
-      title: 'Penjualan Hari Ini',
+      title: 'PEMASUKAN Hari Ini',
       value: `Rp ${todayRevenue.toLocaleString('id-ID')}`,
-      change: todayTransactions.filter(t => t.type === 'Penjualan').length + ' transaksi',
-      icon: DollarSign,
+      change: `${todayTransactions.filter(t => t.type === 'Penjualan').length} transaksi`,
+      icon: ArrowUpCircle,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
-      title: 'Penjualan Bulan Ini',
-      value: `Rp ${thisMonthRevenue.toLocaleString('id-ID')}`,
-      change: thisMonthTransactions.filter(t => t.type === 'Penjualan').length + ' transaksi',
-      icon: TrendingUp,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      title: 'PENGELUARAN Hari Ini',
+      value: `Rp ${(todayPurchaseAmount + todayExpenseAmount).toLocaleString('id-ID')}`,
+      change: `${todayPurchases.length + todayExpenses.length} transaksi`,
+      icon: ArrowDownCircle,
+      color: 'text-red-600',
+      bgColor: 'bg-red-100',
     },
     {
       title: 'Total Produk',
@@ -52,12 +58,12 @@ const Dashboard: React.FC = () => {
       bgColor: lowStockProducts.length > 0 ? 'bg-orange-100' : 'bg-green-100',
     },
     {
-      title: 'Laba Kotor',
-      value: `Rp ${(summary.grossProfit || 0).toLocaleString('id-ID')}`,
-      change: summary.grossProfit > 0 ? 'Profit' : summary.grossProfit < 0 ? 'Loss' : 'Break Even',
-      icon: TrendingUp,
-      color: summary.grossProfit >= 0 ? 'text-purple-600' : 'text-red-600',
-      bgColor: summary.grossProfit >= 0 ? 'bg-purple-100' : 'bg-red-100',
+      title: 'Laba Bersih',
+      value: `Rp ${(summary.netIncome || 0).toLocaleString('id-ID')}`,
+      change: summary.netIncome >= 0 ? 'Profit' : 'Loss',
+      icon: DollarSign,
+      color: summary.netIncome >= 0 ? 'text-blue-600' : 'text-red-600',
+      bgColor: summary.netIncome >= 0 ? 'bg-blue-100' : 'bg-red-100',
     },
   ];
 
@@ -70,7 +76,7 @@ const Dashboard: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-gray-600 mt-2">
-              Selamat datang di Sistem Akuntansi Indonesia - {new Date().toLocaleDateString('id-ID', { 
+              Sistem Akuntansi Indonesia - {new Date().toLocaleDateString('id-ID', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 
@@ -81,32 +87,37 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick Start Section */}
+      {/* Welcome Message for New Users */}
       {products.length === 0 && transactions.length === 0 && (
-        <Card className="mb-8 border-blue-200 bg-blue-50">
+        <Card className="mb-8 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
           <CardContent className="p-6">
             <div className="text-center">
               <Package className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-blue-900 mb-2">Mulai Menggunakan Sistem</h2>
+              <h2 className="text-xl font-bold text-blue-900 mb-2">Selamat Datang di Sistem Akuntansi!</h2>
               <p className="text-blue-700 mb-4">
-                Anda belum memiliki data. Mari mulai dengan menambahkan produk pertama untuk memulai bisnis Anda!
+                Mari mulai dengan menambahkan produk pertama untuk memulai bisnis Anda!
               </p>
-              <p className="text-blue-600 text-sm mb-4">
-                Langkah selanjutnya: Produk → Tambah Produk → Kasir → Mulai Penjualan
-              </p>
+              <div className="bg-white/50 p-4 rounded-lg mb-4">
+                <p className="text-blue-800 text-sm font-medium mb-2">Langkah-langkah untuk memulai:</p>
+                <ol className="text-blue-700 text-sm space-y-1 text-left max-w-md mx-auto">
+                  <li>1. Pergi ke menu <strong>Produk</strong> → Tambah produk pertama</li>
+                  <li>2. Buka menu <strong>Kasir</strong> → Mulai penjualan</li>
+                  <li>3. Lihat laporan di menu <strong>Transaksi</strong> dan <strong>Laporan</strong></li>
+                </ol>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Alerts for important issues */}
+      {/* Stock Alerts */}
       {(outOfStockProducts.length > 0 || lowStockProducts.length > 0) && (
         <Card className="mb-8 border-orange-200 bg-orange-50">
           <CardContent className="p-4">
             <div className="flex items-start space-x-3">
               <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-orange-900">Peringatan Stok</h3>
+                <h3 className="font-semibold text-orange-900">⚠️ Peringatan Stok</h3>
                 {outOfStockProducts.length > 0 && (
                   <p className="text-orange-700 text-sm">
                     {outOfStockProducts.length} produk habis stok: {outOfStockProducts.map(p => p.name).join(', ')}
@@ -114,7 +125,7 @@ const Dashboard: React.FC = () => {
                 )}
                 {lowStockProducts.length > 0 && (
                   <p className="text-orange-700 text-sm">
-                    {lowStockProducts.length} produk stok rendah (kurang dari 10)
+                    {lowStockProducts.length} produk stok rendah (di bawah minimum)
                   </p>
                 )}
               </div>
@@ -128,15 +139,15 @@ const Dashboard: React.FC = () => {
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-lg transition-shadow duration-300">
+            <Card key={index} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                    <p className={`text-sm mt-1 ${stat.color}`}>{stat.change}</p>
+                    <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
+                    <p className="text-2xl font-bold text-gray-900 mb-2">{stat.value}</p>
+                    <p className={`text-sm ${stat.color} font-medium`}>{stat.change}</p>
                   </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor} ml-4`}>
+                  <div className={`p-3 rounded-full ${stat.bgColor} ml-4 flex-shrink-0`}>
                     <Icon className={`h-6 w-6 ${stat.color}`} />
                   </div>
                 </div>
@@ -217,34 +228,61 @@ const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                <span className="text-green-700 font-medium">Total Penjualan</span>
-                <span className="text-green-600 font-bold">
-                  Rp {(summary.totalRevenue || 0).toLocaleString('id-ID')}
-                </span>
+              {/* PEMASUKAN */}
+              <div>
+                <h4 className="text-sm font-semibold text-green-700 mb-2 flex items-center">
+                  <ArrowUpCircle className="h-4 w-4 mr-1" />
+                  PEMASUKAN
+                </h4>
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                  <span className="text-green-700 font-medium">Penjualan</span>
+                  <span className="text-green-600 font-bold">
+                    Rp {(summary.totalRevenue || 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                <span className="text-orange-700 font-medium">Beban Pokok Penjualan</span>
-                <span className="text-orange-600 font-bold">
-                  Rp {(summary.totalCOGS || 0).toLocaleString('id-ID')}
-                </span>
+
+              {/* PENGELUARAN */}
+              <div>
+                <h4 className="text-sm font-semibold text-red-700 mb-2 flex items-center">
+                  <ArrowDownCircle className="h-4 w-4 mr-1" />
+                  PENGELUARAN
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                    <span className="text-red-700 font-medium">Pembelian</span>
+                    <span className="text-red-600 font-bold">
+                      Rp {(summary.totalPurchases || 0).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                    <span className="text-red-700 font-medium">Beban/Biaya</span>
+                    <span className="text-red-600 font-bold">
+                      Rp {(summary.totalExpenses || 0).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="text-blue-700 font-medium">Laba Kotor</span>
-                <span className={`font-bold ${summary.grossProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                  Rp {(summary.grossProfit || 0).toLocaleString('id-ID')}
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                <span className="text-purple-700 font-medium">Laba Bersih</span>
-                <span className={`font-bold ${summary.netIncome >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
-                  Rp {(summary.netIncome || 0).toLocaleString('id-ID')}
-                </span>
+
+              {/* PROFIT */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                  <span className="text-blue-700 font-medium">Laba Kotor</span>
+                  <span className={`font-bold ${summary.grossProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                    Rp {(summary.grossProfit || 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+                  <span className="text-purple-700 font-semibold">Laba Bersih</span>
+                  <span className={`font-bold text-lg ${summary.netIncome >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
+                    Rp {(summary.netIncome || 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
               </div>
               
               {summary.netIncome > 0 && summary.totalRevenue > 0 && (
                 <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
-                  <p className="text-sm text-green-700 font-medium">
+                  <p className="text-sm text-green-700 font-medium text-center">
                     💡 Margin Laba: {((summary.netIncome / summary.totalRevenue) * 100).toFixed(1)}%
                   </p>
                 </div>

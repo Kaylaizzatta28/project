@@ -7,6 +7,7 @@ import Produk from '@/components/Produk';
 import Kasir from '@/components/Kasir';
 import Transaksi from '@/components/Transaksi';
 import Pembelian from '@/components/Pembelian';
+import Beban from '@/components/Beban';
 import Jurnal from '@/components/Jurnal';
 import Laporan from '@/components/Laporan';
 import { Toaster } from '@/components/ui/toaster';
@@ -26,6 +27,8 @@ const Index = () => {
         return <Transaksi />;
       case 'pembelian':
         return <Pembelian />;
+      case 'beban':
+        return <Beban />;
       case 'jurnal':
         return <Jurnal />;
       case 'laporan':
