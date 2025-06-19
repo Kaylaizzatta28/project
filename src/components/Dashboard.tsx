@@ -53,7 +53,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Laba Kotor',
-      value: `Rp ${summary.grossProfit.toLocaleString('id-ID')}`,
+      value: `Rp ${(summary.grossProfit || 0).toLocaleString('id-ID')}`,
       change: summary.grossProfit > 0 ? 'Profit' : summary.grossProfit < 0 ? 'Loss' : 'Break Even',
       icon: TrendingUp,
       color: summary.grossProfit >= 0 ? 'text-purple-600' : 'text-red-600',
@@ -220,32 +220,32 @@ const Dashboard: React.FC = () => {
               <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                 <span className="text-green-700 font-medium">Total Penjualan</span>
                 <span className="text-green-600 font-bold">
-                  Rp {summary.totalSales.toLocaleString('id-ID')}
+                  Rp {(summary.totalRevenue || 0).toLocaleString('id-ID')}
                 </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
                 <span className="text-orange-700 font-medium">Beban Pokok Penjualan</span>
                 <span className="text-orange-600 font-bold">
-                  Rp {summary.totalCOGS.toLocaleString('id-ID')}
+                  Rp {(summary.totalCOGS || 0).toLocaleString('id-ID')}
                 </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
                 <span className="text-blue-700 font-medium">Laba Kotor</span>
                 <span className={`font-bold ${summary.grossProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                  Rp {summary.grossProfit.toLocaleString('id-ID')}
+                  Rp {(summary.grossProfit || 0).toLocaleString('id-ID')}
                 </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
                 <span className="text-purple-700 font-medium">Laba Bersih</span>
                 <span className={`font-bold ${summary.netIncome >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
-                  Rp {summary.netIncome.toLocaleString('id-ID')}
+                  Rp {(summary.netIncome || 0).toLocaleString('id-ID')}
                 </span>
               </div>
               
-              {summary.netIncome > 0 && (
+              {summary.netIncome > 0 && summary.totalRevenue > 0 && (
                 <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
                   <p className="text-sm text-green-700 font-medium">
-                    💡 Margin Laba: {((summary.netIncome / Math.max(summary.totalSales, 1)) * 100).toFixed(1)}%
+                    💡 Margin Laba: {((summary.netIncome / summary.totalRevenue) * 100).toFixed(1)}%
                   </p>
                 </div>
               )}

@@ -86,8 +86,10 @@ interface AppContextType {
   deleteExpense: (id: string) => void;
   getFinancialSummary: () => {
     totalRevenue: number;
+    totalSales: number; // Alias for compatibility
     totalExpenses: number;
     totalPurchases: number;
+    totalCOGS: number;
     grossProfit: number;
     netIncome: number;
     totalAssets: number;
@@ -360,7 +362,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .filter(e => e.status === 'Lunas')
       .reduce((sum, e) => sum + e.amount, 0);
     
-    const grossProfit = totalRevenue - totalPurchases;
+    // Calculate COGS (Cost of Goods Sold) from sales transactions
+    const totalCOGS = transactions
+      .filter(t => t.type === 'Penjualan' && t.status === 'Lunas')
+      .reduce((sum, t) => {
+        return sum + t.items.reduce((itemSum, item) => {
+          const product = products.find(p => p.id === item.productId);
+          return itemSum + (item.quantity * (product?.cost || 0));
+        }, 0);
+      }, 0);
+    
+    const grossProfit = totalRevenue - totalCOGS;
     const netIncome = grossProfit - totalExpenses;
     
     // Calculate assets, liabilities, and equity
@@ -374,8 +386,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     return {
       totalRevenue,
+      totalSales: totalRevenue, // Alias for compatibility
       totalExpenses,
       totalPurchases,
+      totalCOGS,
       grossProfit,
       netIncome,
       totalAssets,
