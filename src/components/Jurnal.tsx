@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { TrendingUp, Plus, Calendar, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/contexts/AppContext';
+import AddJournalModal from './AddJournalModal';
 
 const Jurnal: React.FC = () => {
   const { journalEntries } = useApp();
   const [selectedPeriod, setSelectedPeriod] = useState('bulan-ini');
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const totalDebit = journalEntries.reduce((sum, entry) => 
     sum + entry.debit.reduce((debitSum, item) => debitSum + item.amount, 0), 0);
@@ -41,7 +42,10 @@ const Jurnal: React.FC = () => {
                 <SelectItem value="tahun-ini">Tahun Ini</SelectItem>
               </SelectContent>
             </Select>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button 
+              onClick={() => setShowAddModal(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Tambah Jurnal
             </Button>
@@ -85,12 +89,13 @@ const Jurnal: React.FC = () => {
         <CardContent>
           <div className="space-y-6">
             {journalEntries.map((entry, index) => (
-              <div key={entry.id} className="border rounded-lg p-4 bg-white">
+              <div key={entry.id} className="border rounded-lg p-4 bg-white shadow-sm">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="font-semibold text-gray-900">{entry.description}</h3>
                     <p className="text-sm text-gray-600">
-                      {entry.id} • {new Date(entry.date).toLocaleDateString('id-ID')}
+                      {entry.id} • {new Date(entry.date).toLocaleDateString('id-ID')} • {entry.type}
+                      {entry.reference && ` • Ref: ${entry.reference}`}
                     </p>
                   </div>
                   <Button size="sm" variant="outline">
@@ -151,11 +156,23 @@ const Jurnal: React.FC = () => {
             <div className="text-center py-12">
               <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">Belum ada entri jurnal</p>
-              <p className="text-sm text-gray-400 mt-2">Jurnal akan otomatis dibuat saat ada transaksi penjualan</p>
+              <p className="text-sm text-gray-400 mt-2">Jurnal akan otomatis dibuat saat ada transaksi atau Anda dapat menambah jurnal manual</p>
+              <Button 
+                onClick={() => setShowAddModal(true)}
+                className="mt-4 bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Jurnal Manual
+              </Button>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <AddJournalModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
     </div>
   );
 };

@@ -1,10 +1,11 @@
-
 import React, { useState } from 'react';
 import { Plus, Minus, Trash2, ShoppingCart, Calculator, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/contexts/AppContext';
+import PaymentModal from './PaymentModal';
+import { useToast } from '@/hooks/use-toast';
 
 interface CartItem {
   id: string;
@@ -17,6 +18,8 @@ const Kasir: React.FC = () => {
   const { products, addTransaction, updateProductStock } = useApp();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const { toast } = useToast();
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -25,14 +28,22 @@ const Kasir: React.FC = () => {
 
   const addToCart = (product: typeof products[0]) => {
     if (product.stock <= 0) {
-      alert('Stok produk habis!');
+      toast({
+        title: "Stok Habis",
+        description: `Stok ${product.name} sudah habis!`,
+        variant: "destructive"
+      });
       return;
     }
 
     const existingItem = cart.find(item => item.id === product.id);
     if (existingItem) {
       if (existingItem.quantity >= product.stock) {
-        alert('Stok tidak mencukupi!');
+        toast({
+          title: "Stok Tidak Mencukupi",
+          description: `Stok ${product.name} hanya tersisa ${product.stock}`,
+          variant: "destructive"
+        });
         return;
       }
       setCart(cart.map(item => 
@@ -43,12 +54,21 @@ const Kasir: React.FC = () => {
     } else {
       setCart([...cart, { ...product, quantity: 1 }]);
     }
+
+    toast({
+      title: "Produk Ditambahkan",
+      description: `${product.name} berhasil ditambahkan ke keranjang`
+    });
   };
 
   const updateQuantity = (id: string, newQuantity: number) => {
     const product = products.find(p => p.id === id);
     if (product && newQuantity > product.stock) {
-      alert('Stok tidak mencukupi!');
+      toast({
+        title: "Stok Tidak Mencukupi",
+        description: `Stok ${product.name} hanya tersisa ${product.stock}`,
+        variant: "destructive"
+      });
       return;
     }
 
@@ -67,11 +87,12 @@ const Kasir: React.FC = () => {
 
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const processTransaction = () => {
-    if (cart.length === 0) {
-      alert('Keranjang masih kosong!');
-      return;
-    }
+  const handlePayment = (paymentData: {
+    method: 'Tunai' | 'Transfer' | 'Kredit';
+    cashReceived?: number;
+    change?: number;
+  }) => {
+    if (cart.length === 0) return;
     
     // Create transaction
     const transaction = {
@@ -86,18 +107,25 @@ const Kasir: React.FC = () => {
         productName: item.name,
         quantity: item.quantity,
         price: item.price
-      }))
+      })),
+      paymentMethod: paymentData.method,
+      cashReceived: paymentData.cashReceived,
+      change: paymentData.change
     };
 
     addTransaction(transaction);
 
     // Update stock
     cart.forEach(item => {
-      updateProductStock(item.id, item.quantity);
+      updateProductStock(item.id, item.quantity, 'sale');
     });
 
-    const transactionId = 'TRX' + Date.now().toString().slice(-6);
-    alert(`Transaksi berhasil!\nNo. Transaksi: ${transactionId}\nTotal: Rp ${total.toLocaleString('id-ID')}`);
+    // Show success notification
+    toast({
+      title: "Transaksi Berhasil!",
+      description: `Total: Rp ${total.toLocaleString('id-ID')}${paymentData.change ? ` | Kembalian: Rp ${paymentData.change.toLocaleString('id-ID')}` : ''}`,
+      className: "bg-green-50 border-green-200"
+    });
     
     // Reset form
     setCart([]);
@@ -131,7 +159,7 @@ const Kasir: React.FC = () => {
           {filteredProducts.map((product) => (
             <Card 
               key={product.id} 
-              className={`cursor-pointer hover:shadow-lg transition-shadow duration-200 h-fit ${
+              className={`cursor-pointer hover:shadow-lg transition-all duration-200 h-fit transform hover:scale-105 ${
                 product.stock <= 0 ? 'opacity-50' : ''
               }`}
               onClick={() => addToCart(product)}
@@ -163,9 +191,9 @@ const Kasir: React.FC = () => {
       </div>
 
       {/* Right Side - Cart */}
-      <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900 flex items-center">
+      <div className="w-96 bg-white border-l border-gray-200 flex flex-col shadow-lg">
+        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700">
+          <h2 className="text-xl font-bold text-white flex items-center">
             <ShoppingCart className="mr-2 h-5 w-5" />
             Keranjang
           </h2>
@@ -182,7 +210,7 @@ const Kasir: React.FC = () => {
             ) : (
               <div className="space-y-3">
                 {cart.map((item) => (
-                  <div key={item.id} className="bg-gray-50 rounded-lg p-4">
+                  <div key={item.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-medium text-gray-900">{item.name}</h4>
                       <Button
@@ -240,14 +268,21 @@ const Kasir: React.FC = () => {
               </div>
               <Button 
                 className="w-full bg-green-600 hover:bg-green-700 h-12 text-lg"
-                onClick={processTransaction}
+                onClick={() => setShowPaymentModal(true)}
               >
-                Proses Transaksi
+                Proses Pembayaran
               </Button>
             </div>
           )}
         </div>
       </div>
+
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        total={total}
+        onPayment={handlePayment}
+      />
     </div>
   );
 };

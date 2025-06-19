@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Package, Calculator, Receipt, TrendingUp, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Calculator, Receipt, ShoppingBag, TrendingUp, FileText, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,6 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'produk', label: 'Produk', icon: Package },
     { id: 'kasir', label: 'Kasir', icon: Calculator },
     { id: 'transaksi', label: 'Transaksi', icon: Receipt },
+    { id: 'pembelian', label: 'Pembelian', icon: ShoppingBag },
     { id: 'jurnal', label: 'Jurnal', icon: TrendingUp },
     { id: 'laporan', label: 'Laporan', icon: FileText },
   ];
@@ -26,16 +27,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   };
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <div className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-lg">
       {/* Logo/Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <div className="w-6 h-6 bg-white rounded-sm transform rotate-45"></div>
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+            <div className="w-6 h-6 bg-blue-600 rounded-sm transform rotate-45"></div>
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Spacer</h2>
-            <p className="text-sm text-gray-600">Sistem Akuntansi</p>
+            <h2 className="text-xl font-bold text-white">Spacer</h2>
+            <p className="text-sm text-blue-100">Sistem Akuntansi</p>
           </div>
         </div>
       </div>
@@ -49,9 +50,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${
                   activeTab === item.id
-                    ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600'
+                    ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600 shadow-sm'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
@@ -68,7 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         <Button 
           onClick={handleLogout}
           variant="outline" 
-          className="w-full flex items-center space-x-2"
+          className="w-full flex items-center space-x-2 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
         >
           <LogOut className="h-4 w-4" />
           <span>Keluar</span>
