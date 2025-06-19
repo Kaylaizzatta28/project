@@ -15,14 +15,14 @@ interface AddPurchaseModalProps {
 }
 
 interface PurchaseItem {
-  productId: string;
   productName: string;
   quantity: number;
   cost: number;
+  category: string;
 }
 
 const AddPurchaseModal: React.FC<AddPurchaseModalProps> = ({ isOpen, onClose }) => {
-  const { products, addPurchase, updateProductStock } = useApp();
+  const { addPurchase, addProduct } = useApp();
   const [supplier, setSupplier] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState('');
@@ -32,7 +32,7 @@ const AddPurchaseModal: React.FC<AddPurchaseModalProps> = ({ isOpen, onClose }) 
   const { toast } = useToast();
 
   const addItem = () => {
-    setItems([...items, { productId: '', productName: '', quantity: 1, cost: 0 }]);
+    setItems([...items, { productName: '', quantity: 1, cost: 0, category: 'Umum' }]);
   };
 
   const removeItem = (index: number) => {
@@ -41,19 +41,7 @@ const AddPurchaseModal: React.FC<AddPurchaseModalProps> = ({ isOpen, onClose }) 
 
   const updateItem = (index: number, field: keyof PurchaseItem, value: string | number) => {
     const newItems = [...items];
-    if (field === 'productId') {
-      const product = products.find(p => p.id === value);
-      if (product) {
-        newItems[index] = {
-          ...newItems[index],
-          productId: value as string,
-          productName: product.name,
-          cost: product.cost || product.price * 0.7 // Default cost if not set
-        };
-      }
-    } else {
-      newItems[index] = { ...newItems[index], [field]: value };
-    }
+    newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
   };
 
@@ -69,14 +57,40 @@ const AddPurchaseModal: React.FC<AddPurchaseModalProps> = ({ isOpen, onClose }) 
       return;
     }
 
-    if (items.some(item => !item.productId || item.quantity <= 0 || item.cost <= 0)) {
+    if (items.some(item => !item.productName || item.quantity <= 0 || item.cost <= 0)) {
       toast({
         title: "Item Tidak Valid",
-        description: "Pastikan semua item memiliki produk, jumlah, dan harga yang valid",
+        description: "Pastikan semua item memiliki nama, jumlah, dan harga yang valid",
         variant: "destructive"
       });
       return;
     }
+
+    // Create products if they don't exist and get their IDs
+    const purchaseItems = items.map(item => {
+      // Auto-create product if it doesn't exist
+      const productId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      
+      // Add to products with selling price = cost * 1.3 (30% markup)
+      const sellingPrice = Math.round(item.cost * 1.3);
+      
+      addProduct({
+        name: item.productName,
+        category: item.category,
+        price: sellingPrice,
+        cost: item.cost,
+        stock: item.quantity,
+        minStock: 5,
+        supplier: supplier
+      });
+
+      return {
+        productId: productId,
+        productName: item.productName,
+        quantity: item.quantity,
+        cost: item.cost
+      };
+    });
 
     const purchase = {
       date,
@@ -84,21 +98,16 @@ const AddPurchaseModal: React.FC<AddPurchaseModalProps> = ({ isOpen, onClose }) 
       amount: totalAmount,
       description,
       status,
-      items,
+      items: purchaseItems,
       paymentMethod
     };
 
     addPurchase(purchase);
 
-    // Update stock for purchased items
-    items.forEach(item => {
-      updateProductStock(item.productId, item.quantity, 'purchase');
-    });
-
     toast({
-      title: "Pembelian Berhasil",
-      description: `Pembelian dari ${supplier} berhasil ditambahkan`,
-      className: "bg-green-50 border-green-200"
+      title: "✅ Pembelian Berhasil",
+      description: `Pembelian dari ${supplier} berhasil dicatat. Produk baru otomatis ditambahkan ke inventori.`,
+      className: "bg-green-50 border-green-200 text-green-800",
     });
 
     // Reset form
@@ -204,22 +213,33 @@ const AddPurchaseModal: React.FC<AddPurchaseModalProps> = ({ isOpen, onClose }) 
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <div className="space-y-2">
-                    <Label>Produk</Label>
+                    <Label>Nama Produk</Label>
+                    <Input
+                      value={item.productName}
+                      onChange={(e) => updateItem(index, 'productName', e.target.value)}
+                      placeholder="Nama produk"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Kategori</Label>
                     <Select 
-                      value={item.productId} 
-                      onValueChange={(value) => updateItem(index, 'productId', value)}
+                      value={item.category} 
+                      onValueChange={(value) => updateItem(index, 'category', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih produk" />
+                        <SelectValue placeholder="Pilih kategori" />
                       </SelectTrigger>
                       <SelectContent>
-                        {products.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.name}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="Umum">Umum</SelectItem>
+                        <SelectItem value="Makanan">Makanan</SelectItem>
+                        <SelectItem value="Minuman">Minuman</SelectItem>
+                        <SelectItem value="Elektronik">Elektronik</SelectItem>
+                        <SelectItem value="Pakaian">Pakaian</SelectItem>
+                        <SelectItem value="Kesehatan">Kesehatan</SelectItem>
+                        <SelectItem value="Rumah Tangga">Rumah Tangga</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -255,11 +275,24 @@ const AddPurchaseModal: React.FC<AddPurchaseModalProps> = ({ isOpen, onClose }) 
             ))}
           </div>
 
+          {/* Informasi Otomatis */}
+          {items.length > 0 && (
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2">ℹ️ Informasi:</h4>
+              <p className="text-sm text-blue-700 mb-2">
+                • Produk akan otomatis ditambahkan ke inventori jika belum ada
+              </p>
+              <p className="text-sm text-blue-700">
+                • Harga jual akan diset otomatis dengan markup 30% dari harga beli
+              </p>
+            </div>
+          )}
+
           {/* Total */}
-          <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="bg-green-50 p-4 rounded-lg">
             <div className="flex justify-between items-center text-lg font-bold">
               <span>Total Pembelian:</span>
-              <span className="text-blue-600">
+              <span className="text-green-600">
                 Rp {totalAmount.toLocaleString('id-ID')}
               </span>
             </div>

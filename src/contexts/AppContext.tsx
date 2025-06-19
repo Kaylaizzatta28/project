@@ -6,7 +6,7 @@ export interface Product {
   name: string;
   category: string;
   price: number;
-  cost: number; // Harga pokok
+  cost: number;
   stock: number;
   minStock: number;
   supplier?: string;
@@ -110,7 +110,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Mulai dengan data kosong untuk fresh start
+// Start with clean data (fresh startup)
 const initialProducts: Product[] = [];
 const initialTransactions: Transaction[] = [];
 const initialPurchases: Purchase[] = [];
@@ -124,7 +124,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
 
   const addProduct = (product: Omit<Product, 'id'>) => {
-    const newProduct = { ...product, id: Date.now().toString() };
+    const newProduct = { ...product, id: Date.now().toString() + Math.random().toString(36).substr(2, 9) };
     setProducts([...products, newProduct]);
   };
 
@@ -144,7 +144,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ? { 
             ...product, 
             stock: type === 'sale' 
-              ? product.stock - quantity 
+              ? Math.max(0, product.stock - quantity) 
               : product.stock + quantity 
           }
         : product
@@ -158,13 +158,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setTransactions([newTransaction, ...transactions]);
     
-    // Update stock untuk penjualan
+    // Update stock for sales
     if (transaction.type === 'Penjualan') {
       transaction.items.forEach(item => {
         updateProductStock(item.productId, item.quantity, 'sale');
       });
       
-      // Auto-generate journal entry untuk penjualan
+      // Auto-generate journal entry for sales
       const journalEntry: Omit<JournalEntry, 'id'> = {
         date: transaction.date,
         description: `Penjualan - ${transaction.description}`,
@@ -192,12 +192,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setPurchases([newPurchase, ...purchases]);
     
-    // Update stock untuk pembelian
-    purchase.items.forEach(item => {
-      updateProductStock(item.productId, item.quantity, 'purchase');
-    });
-    
-    // Auto-generate journal entry untuk pembelian
+    // Auto-generate journal entry for purchases
     const journalEntry: Omit<JournalEntry, 'id'> = {
       date: purchase.date,
       description: `Pembelian - ${purchase.description}`,
@@ -236,7 +231,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setExpenses([newExpense, ...expenses]);
     
-    // Auto-generate journal entry untuk beban
+    // Auto-generate journal entry for expenses
     const journalEntry: Omit<JournalEntry, 'id'> = {
       date: expense.date,
       description: `Beban ${expense.category} - ${expense.description}`,
@@ -257,12 +252,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const getFinancialSummary = () => {
-    // PEMASUKAN (Revenue)
+    // REVENUE (Pemasukan)
     const totalRevenue = transactions
       .filter(t => t.type === 'Penjualan' && t.status === 'Lunas')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    // PENGELUARAN
+    // EXPENSES (Pengeluaran)
     const totalPurchases = purchases
       .filter(p => p.status === 'Lunas')
       .reduce((sum, p) => sum + p.amount, 0);
@@ -271,13 +266,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .filter(e => e.status === 'Lunas')
       .reduce((sum, e) => sum + e.amount, 0);
     
-    // Calculate COGS (Harga Pokok Penjualan)
+    // Calculate COGS (Cost of Goods Sold)
     const totalCOGS = transactions
       .filter(t => t.type === 'Penjualan' && t.status === 'Lunas')
       .reduce((sum, t) => {
         return sum + t.items.reduce((itemSum, item) => {
           const product = products.find(p => p.id === item.productId);
-          return itemSum + (item.quantity * (product?.cost || 0));
+          return itemSum + (item.quantity * (product?.cost || item.cost || 0));
         }, 0);
       }, 0);
     
@@ -287,13 +282,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Assets, Liabilities, and Equity calculation
     const inventoryValue = products.reduce((sum, p) => sum + (p.stock * p.cost), 0);
     const cash = totalRevenue - totalExpenses - totalPurchases;
-    const totalAssets = cash + inventoryValue + (totalRevenue * 0.5); // Equipment and other assets
-    const totalLiabilities = totalPurchases * 0.2; // Accounts payable
+    const totalAssets = Math.max(0, cash) + inventoryValue;
+    const totalLiabilities = purchases.filter(p => p.status === 'Belum Lunas').reduce((sum, p) => sum + p.amount, 0);
     const equity = totalAssets - totalLiabilities;
 
     return {
       totalRevenue,
-      totalSales: totalRevenue, // Alias for compatibility
+      totalSales: totalRevenue,
       totalExpenses,
       totalPurchases,
       totalCOGS,
@@ -310,12 +305,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const inventoryValue = products.reduce((sum, p) => sum + (p.stock * p.cost), 0);
     
     return {
-      kas: summary.totalRevenue - summary.totalExpenses - summary.totalPurchases,
-      piutang: summary.totalRevenue * 0.1, // 10% of revenue as receivables
+      kas: Math.max(0, summary.totalRevenue - summary.totalExpenses - summary.totalPurchases),
+      piutang: transactions.filter(t => t.status === 'Belum Lunas').reduce((sum, t) => sum + t.amount, 0),
       persediaan: inventoryValue,
-      peralatan: summary.totalRevenue * 0.5,
-      hutangUsaha: summary.totalPurchases * 0.2,
-      hutangBank: summary.totalPurchases * 0.1,
+      peralatan: summary.totalPurchases * 0.1, // 10% of purchases as equipment
+      hutangUsaha: purchases.filter(p => p.status === 'Belum Lunas').reduce((sum, p) => sum + p.amount, 0),
+      hutangBank: expenses.filter(e => e.status === 'Belum Lunas').reduce((sum, e) => sum + e.amount, 0),
       modal: summary.equity
     };
   };
