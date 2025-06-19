@@ -1,11 +1,12 @@
-
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const Auth = () => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
@@ -22,10 +23,12 @@ const Auth = () => {
     e.preventDefault();
     if (isLogin) {
       console.log('Login:', { email: formData.email, password: formData.password });
-      alert('Login functionality will be implemented with Supabase');
+      // Simulasi login berhasil - navigasi ke dashboard
+      navigate('/dashboard');
     } else {
       console.log('Register:', formData);
-      alert('Register functionality will be implemented with Supabase');
+      // Simulasi register berhasil - navigasi ke dashboard
+      navigate('/dashboard');
     }
   };
 
