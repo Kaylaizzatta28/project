@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Edit, X } from 'lucide-react';
+import { X, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,6 +40,16 @@ const EditProductModal: React.FC<EditProductModalProps> = ({ isOpen, onClose, pr
       return;
     }
 
+    if (parseFloat(formData.price) <= 0) {
+      alert('Harga harus lebih besar dari 0!');
+      return;
+    }
+
+    if (parseInt(formData.stock) < 0) {
+      alert('Stok tidak boleh negatif!');
+      return;
+    }
+
     updateProduct(product.id, {
       name: formData.name,
       price: parseFloat(formData.price),
@@ -69,17 +79,18 @@ const EditProductModal: React.FC<EditProductModalProps> = ({ isOpen, onClose, pr
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Nama Produk</Label>
+            <Label htmlFor="edit-name">Nama Produk</Label>
             <Input
-              id="name"
+              id="edit-name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder="Masukkan nama produk"
+              required
             />
           </div>
 
           <div>
-            <Label htmlFor="category">Kategori</Label>
+            <Label htmlFor="edit-category">Kategori</Label>
             <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Pilih kategori" />
@@ -94,24 +105,29 @@ const EditProductModal: React.FC<EditProductModalProps> = ({ isOpen, onClose, pr
           </div>
 
           <div>
-            <Label htmlFor="price">Harga</Label>
+            <Label htmlFor="edit-price">Harga (Rp)</Label>
             <Input
-              id="price"
+              id="edit-price"
               type="number"
+              min="0"
+              step="0.01"
               value={formData.price}
               onChange={(e) => handleInputChange('price', e.target.value)}
               placeholder="0"
+              required
             />
           </div>
 
           <div>
-            <Label htmlFor="stock">Stok</Label>
+            <Label htmlFor="edit-stock">Stok</Label>
             <Input
-              id="stock"
+              id="edit-stock"
               type="number"
+              min="0"
               value={formData.stock}
               onChange={(e) => handleInputChange('stock', e.target.value)}
               placeholder="0"
+              required
             />
           </div>
 
@@ -120,7 +136,8 @@ const EditProductModal: React.FC<EditProductModalProps> = ({ isOpen, onClose, pr
               Batal
             </Button>
             <Button type="submit" className="flex-1">
-              Simpan Perubahan
+              <Save className="mr-2 h-4 w-4" />
+              Simpan
             </Button>
           </div>
         </form>

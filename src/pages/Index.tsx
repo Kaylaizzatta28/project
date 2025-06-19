@@ -1,31 +1,31 @@
 
 import React, { useState } from 'react';
-import { Sidebar } from '@/components/Sidebar';
+import { AppProvider } from '@/contexts/AppContext';
+import Sidebar from '@/components/Sidebar';
 import Dashboard from '@/components/Dashboard';
+import Produk from '@/components/Produk';
 import Kasir from '@/components/Kasir';
 import Transaksi from '@/components/Transaksi';
-import Laporan from '@/components/Laporan';
-import Produk from '@/components/Produk';
 import Jurnal from '@/components/Jurnal';
-import { AppProvider } from '@/contexts/AppContext';
+import Laporan from '@/components/Laporan';
 
 const Index = () => {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const renderContent = () => {
-    switch (activeSection) {
+    switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
+      case 'produk':
+        return <Produk />;
       case 'kasir':
         return <Kasir />;
       case 'transaksi':
         return <Transaksi />;
-      case 'laporan':
-        return <Laporan />;
-      case 'produk':
-        return <Produk />;
       case 'jurnal':
         return <Jurnal />;
+      case 'laporan':
+        return <Laporan />;
       default:
         return <Dashboard />;
     }
@@ -33,11 +33,11 @@ const Index = () => {
 
   return (
     <AppProvider>
-      <div className="flex h-screen bg-gray-100">
-        <Sidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-        <div className="flex-1 overflow-auto">
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <main className="flex-1 overflow-auto">
           {renderContent()}
-        </div>
+        </main>
       </div>
     </AppProvider>
   );
